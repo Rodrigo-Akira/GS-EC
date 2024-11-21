@@ -1,26 +1,22 @@
-CODIGO
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
 
-// Definição do LCD (20x4)
-LiquidCrystal_I2C lcd(0x27, 20, 4);  // Confirme o endereço I2C do LCD
 
-// Definições dos pinos
-const int potPin = 34;  // Pino do potenciômetro (ADC)
+LiquidCrystal_I2C lcd(0x27, 20, 4);  
 
-// Parâmetros para o cálculo
-const float maxPotValue = 4095.0;  // Valor máximo do ADC
-const float maxPower = 4400.0;      // Potência máxima simulada (em watts)
+const int potPin = 34;  
+const float maxPotValue = 4095.0;  
+const float maxPower = 4400.0;      
 
-// Variáveis
-float power = 0.0;          // Potência calculada
-float energyConsumed = 0.0; // Energia consumida acumulada em kWh
-unsigned long lastUpdateTime = 0;  // Último tempo atualizado (em ms)
 
-// Intervalo para atualização (1 segundo = 1000 ms)
+float power = 0.0;          
+float energyConsumed = 0.0; 
+unsigned long lastUpdateTime = 0;  
+
+
 const unsigned long updateInterval = 1000;
 
-// Função para avaliar o consumo
+
 String avaliarConsumo(float energia) {
   if (energia < 0.5) {
     return "Bom";
@@ -32,12 +28,10 @@ String avaliarConsumo(float energia) {
 }
 
 void setup() {
-  // Inicializa Serial e LCD
   Serial.begin(115200);
   lcd.init();
   lcd.backlight();
 
-  // Mensagem inicial no LCD
   lcd.setCursor(0, 0);
   lcd.print("Simulador Iniciado");
   delay(2000);
@@ -45,43 +39,33 @@ void setup() {
 }
 
 void loop() {
-  // Atualiza a cada 1 segundo
   unsigned long currentTime = millis();
   if (currentTime - lastUpdateTime >= updateInterval) {
     lastUpdateTime = currentTime;
-
-    // Leitura do potenciômetro
     int potValue = analogRead(potPin);
-
-    // Cálculo da potência (em watts)
     power = (potValue / maxPotValue) * maxPower;
-
-    // Calcula energia consumida (em kWh) no intervalo
     energyConsumed += (power / 1000.0) * (updateInterval / 3600000.0);
 
-    // Avalia o consumo
     String statusConsumo = avaliarConsumo(energyConsumed);
 
-    // Atualiza o LCD com as informações
     lcd.clear();
     lcd.setCursor(0, 0);
     lcd.print("Potencia: ");
-    lcd.print(power, 1);  // Exibe potência com 1 casa decimal
+    lcd.print(power, 1);  
     lcd.print(" W");
 
     lcd.setCursor(0, 1);
     lcd.print("Energia: ");
-    lcd.print(energyConsumed, 3);  // Exibe energia com 3 casas decimais
+    lcd.print(energyConsumed, 3);
     lcd.print(" kWh");
 
     lcd.setCursor(0, 2);
     lcd.print("Status: ");
-    lcd.print(statusConsumo);  // Mostra se é Bom, Elevado ou Alto
+    lcd.print(statusConsumo);  
 
     lcd.setCursor(0, 3);
     lcd.print("Atualizando...");
 
-    // Simula envio MQTT no Serial Monitor
     Serial.print("Potencia (W): ");
     Serial.print(power, 1);
     Serial.print(", Energia (kWh): ");
