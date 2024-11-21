@@ -2,7 +2,7 @@
 Rodrigo Akira Hirota Mori RM:555384
 Gabriel Barros Mazzariol RM:555410
 https://wokwi.com/projects/415036856656951297
-https://www.youtube.com/watch?v=Q_eryeTIILg&t=643s
+https://youtu.be/7ARBGg3XU8g?si=My5r2Hvx8UMF7pq_
 
 Monitor de Consumo de Energia com ESP32 e MQTT:
 Este projeto aborda o monitoramento de consumo energético em tempo real, utilizando o microcontrolador ESP32, um display LCD e comunicação MQTT. A solução é projetada para promover a eficiência energética em sistemas baseados em fontes renováveis, integrando-se com plataformas IoT como o FIWARE.
