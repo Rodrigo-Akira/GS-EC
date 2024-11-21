@@ -1,21 +1,32 @@
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
+#include <WiFi.h>
+#include <PubSubClient.h>
 
+LiquidCrystal_I2C lcd(0x27, 20, 4);
 
-LiquidCrystal_I2C lcd(0x27, 20, 4);  
+const int potPin = 34;
 
-const int potPin = 34;  
-const float maxPotValue = 4095.0;  
-const float maxPower = 4400.0;      
+const float maxPotValue = 4095.0;
+const float maxPower = 4400.0;
 
-
-float power = 0.0;          
-float energyConsumed = 0.0; 
-unsigned long lastUpdateTime = 0;  
-
+float power = 0.0;
+float energyConsumed = 0.0;
+unsigned long lastUpdateTime = 0;
 
 const unsigned long updateInterval = 1000;
 
+const char* ssid = "Wokwi-GUEST";
+const char* password = "";
+
+const char* mqttServer = "broker.hivemq.com";
+const int mqttPort = 1883;
+const char* mqttTopicPower = "energia/potencia";
+const char* mqttTopicEnergy = "energia/consumo";
+const char* mqttTopicStatus = "energia/status";
+
+WiFiClient espClient;
+PubSubClient client(espClient);
 
 String avaliarConsumo(float energia) {
   if (energia < 0.5) {
@@ -27,10 +38,44 @@ String avaliarConsumo(float energia) {
   }
 }
 
+void connectWiFi() {
+  lcd.setCursor(0, 0);
+  lcd.print("Conectando WiFi...");
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    lcd.setCursor(0, 1);
+    lcd.print(".");
+    Serial.print(".");
+  }
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("WiFi Conectado!");
+  Serial.println("\nWiFi Conectado!");
+  delay(1000);
+}
+
+void connectMQTT() {
+  while (!client.connected()) {
+    Serial.println("Conectando ao MQTT...");
+    if (client.connect("ESP32Cliente")) {
+      Serial.println("Conectado ao MQTT!");
+    } else {
+      Serial.print("Falha na conexao MQTT, rc=");
+      Serial.print(client.state());
+      Serial.println(" Tentando novamente...");
+      delay(2000);
+    }
+  }
+}
+
 void setup() {
   Serial.begin(115200);
   lcd.init();
   lcd.backlight();
+
+  connectWiFi();
+  client.setServer(mqttServer, mqttPort);
 
   lcd.setCursor(0, 0);
   lcd.print("Simulador Iniciado");
@@ -39,19 +84,24 @@ void setup() {
 }
 
 void loop() {
+  if (!client.connected()) {
+    connectMQTT();
+  }
+  client.loop();
+
   unsigned long currentTime = millis();
   if (currentTime - lastUpdateTime >= updateInterval) {
     lastUpdateTime = currentTime;
+
     int potValue = analogRead(potPin);
     power = (potValue / maxPotValue) * maxPower;
     energyConsumed += (power / 1000.0) * (updateInterval / 3600000.0);
-
     String statusConsumo = avaliarConsumo(energyConsumed);
 
     lcd.clear();
     lcd.setCursor(0, 0);
     lcd.print("Potencia: ");
-    lcd.print(power, 1);  
+    lcd.print(power, 1);
     lcd.print(" W");
 
     lcd.setCursor(0, 1);
@@ -61,10 +111,14 @@ void loop() {
 
     lcd.setCursor(0, 2);
     lcd.print("Status: ");
-    lcd.print(statusConsumo);  
+    lcd.print(statusConsumo);
 
     lcd.setCursor(0, 3);
     lcd.print("Atualizando...");
+
+    client.publish(mqttTopicPower, String(power, 1).c_str());
+    client.publish(mqttTopicEnergy, String(energyConsumed, 3).c_str());
+    client.publish(mqttTopicStatus, statusConsumo.c_str());
 
     Serial.print("Potencia (W): ");
     Serial.print(power, 1);
